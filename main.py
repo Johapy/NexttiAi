@@ -15,4 +15,4 @@ app.include_router(router)
 if __name__ == "__main__":
     import uvicorn
     # "main:app" le dice a uvicorn que busque la variable 'app' en el archivo 'main'
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8005, reload=True)
