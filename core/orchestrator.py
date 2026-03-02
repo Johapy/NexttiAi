@@ -3,7 +3,7 @@ from core.config import settings
 from connectors.odoo_client import OdooClient
 from storage.memory_context import get_history, add_message
 from tools.definitions import tools_para_gemini
-from tools.executors import execute_get_partner_by_phone, execute_get_top_selling_products, execute_get_total_sales_and_orders, execute_get_top_customers
+from tools.executors import execute_get_partner_by_phone, execute_get_top_selling_products, execute_get_total_sales_and_orders, execute_get_top_customers, execute_odoo_query
 from google import genai
 from google.genai import types
 
@@ -13,6 +13,22 @@ odoo = OdooClient(
     db=settings.odoo_db, 
     username=settings.odoo_username, 
     password=settings.odoo_password
+)
+
+mapa_odoo = """
+ESTRUCTURA DE LA BASE DE DATOS (ODOO MAP):
+Para responder preguntas con la herramienta 'execute_odoo_query', usa estos modelos y métodos:
+- 'res.partner': Contiene clientes y contactos. (Campos: name, phone, email).
+- 'sale.order': Contiene los pedidos de venta. (Campos: name, partner_id, amount_total, state).
+- 'product.product': Contiene los productos. (Campos: name, list_price, qty_available).
+
+MÉTODOS PERMITIDOS:
+- Usa 'search_read' para buscar listas de registros.
+- Usa 'read_group' para sumar, contar o agrupar datos.
+"""
+
+configuracion_ia = types.GenerateContentConfig(
+    system_instruction=mapa_odoo,
 )
 
 gemini_client = genai.Client(api_key=settings.gemini_api_key)
@@ -36,7 +52,10 @@ async def process_message(user_id: str, user_message: str):
     response = gemini_client.models.generate_content(
         model='gemini-2.5-flash',
         contents=historial,
-        config=types.GenerateContentConfig(tools=tools_para_gemini)
+        config=types.GenerateContentConfig(
+            tools=tools_para_gemini,
+            system_instruction=mapa_odoo  # ¡Aquí inyectamos el mapa!
+        )
     )
 
     # 2. ¡Tu lógica aplicada aquí! Verificamos si pidió una herramienta
@@ -145,6 +164,36 @@ async def process_message(user_id: str, user_message: str):
             texto_final = respuesta_final_ia.text
             add_message(user_id, "model", texto_final)
             return texto_final, "get_top_customers"
+        
+        # --- HERRAMIENTA UNIVERSAL: CONSULTAS DINÁMICAS ---
+        elif tool_call.name == "execute_odoo_query":
+            # Extraemos los argumentos dinámicos que eligió la IA
+            modelo = tool_call.args.get("model")
+            metodo = tool_call.args.get("method")
+            # Si la IA no envía filtros, usamos una lista vacía por defecto
+            dominio = tool_call.args.get("domain", []) 
+            
+            # Ejecutamos la consulta universal
+            resultado_odoo = await execute_odoo_query(odoo, modelo, metodo, dominio)
+            
+            # Devolvemos los datos crudos a la IA para que los interprete
+            respuesta_final_ia = gemini_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=historial + [
+                    response.candidates[0].content,
+                    types.Content(
+                        role="tool",
+                        parts=[types.Part.from_function_response(
+                            name="execute_odoo_query",
+                            response=resultado_odoo
+                        )]
+                    )
+                ]
+            )
+
+            texto_final = respuesta_final_ia.text
+            add_message(user_id, "model", texto_final)
+            return texto_final, "execute_odoo_query"
 
     else:
         # Si no hay function_calls, es un mensaje de texto normal
