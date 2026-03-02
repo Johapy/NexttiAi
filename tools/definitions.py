@@ -47,6 +47,29 @@ tools_para_gemini = [
                         }
                     }
                 }
+            },
+            {
+                "name": "execute_odoo_query",
+                "description": "Herramienta universal para buscar, leer o agrupar registros en la base de datos de Odoo. Úsala para responder cualquier pregunta sobre ventas, clientes, productos, etc.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "model": {
+                            "type": "STRING",
+                            "description": "El modelo de Odoo a consultar (ej. 'sale.order', 'res.partner')."
+                        },
+                        "method": {
+                            "type": "STRING",
+                            "description": "El método a usar (ej. 'search_read' para listas, 'read_group' para agrupar)."
+                        },
+                        "domain": {
+                            "type": "ARRAY",
+                            "description": "Los filtros de búsqueda en formato Odoo (ej. [['state', '=', 'sale']]).",
+                            "items": {"type": "STRING"} 
+                        }
+                    },
+                    "required": ["model", "method"] # El dominio es opcional
+                }
             }
         ]
     }

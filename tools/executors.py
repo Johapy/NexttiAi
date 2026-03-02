@@ -3,6 +3,27 @@ from typing import Dict, Any
 
 # tools/executors.py
 
+# tools/executors.py
+
+async def execute_odoo_query(odoo_client, model: str, method: str, domain: list = None) -> dict:
+    """Ejecuta una consulta dinámica en Odoo."""
+    if domain is None:
+        domain = []
+        
+    # Preparamos los argumentos con el dominio dentro de una lista extra
+    args = [ [domain] ]
+    
+    try:
+        # 🛠️ Aquí está la magia dinámica: usamos las variables en lugar de texto fijo
+        result = await odoo_client.execute(model, method, args)
+        
+        if result:
+            return {"status": "success", "data": result}
+        return {"status": "not_found", "message": f"No se encontraron datos en el modelo {model}."}
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 async def execute_get_top_customers(odoo_client, limit: int = 10) -> Dict[str, Any]:
     """Obtiene los clientes con el mayor volumen de compras."""
     # 1. Filtramos solo ventas confirmadas
