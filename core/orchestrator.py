@@ -16,7 +16,7 @@ odoo = OdooClient(
 )
 
 mapa_odoo = """
-ESTRUCTURA DE LA BASE DE DATOS (ODOO MAP):
+ESTRUCTURA DE L BASE DE DATOS (ODOO MAP):
 Para responder preguntas con la herramienta 'execute_odoo_query', usa estos modelos y métodos:
 - 'res.partner': Contiene clientes y contactos. (Campos: name, phone, email).
 - 'sale.order': Contiene los pedidos de venta. (Campos: name, partner_id, amount_total, state).
