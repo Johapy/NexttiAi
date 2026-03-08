@@ -2,27 +2,84 @@
 from typing import Dict, Any
 
 # tools/executors.py
-
-# tools/executors.py
-
-async def execute_odoo_query(odoo_client, model: str, method: str, domain: list = None) -> dict:
-    """Ejecuta una consulta dinámica en Odoo."""
-    if domain is None:
-        domain = []
-        
-    # Preparamos los argumentos con el dominio dentro de una lista extra
-    args = [ [domain] ]
-    
+async def execute_update_odoo_record(odoo_client, model: str, record_id: int, values: dict) -> dict:
+    """Actualiza un registro existente en Odoo."""
     try:
-        # 🛠️ Aquí está la magia dinámica: usamos las variables en lugar de texto fijo
-        result = await odoo_client.execute(model, method, args)
+        # 1. Los datos posicionales: una lista con los IDs y el diccionario de valores
+        argumentos_posicionales = [[record_id], values]
+        # 2. Las opciones extra (kwargs): un diccionario vacío
+        opciones_extra = {}
         
-        if result:
-            return {"status": "success", "data": result}
-        return {"status": "not_found", "message": f"No se encontraron datos en el modelo {model}."}
+        # Empaquetamos todo exactamente como el cliente de Odoo lo exige
+        args_para_odoo = [argumentos_posicionales, opciones_extra]
+        
+        resultado = await odoo_client.execute(model, 'write', args_para_odoo)
+        
+        if resultado:
+            return {"status": "success", "message": f"Registro {record_id} en {model} actualizado correctamente."}
+            
+        return {"status": "error", "message": "Odoo devolvió False. No se pudo actualizar el registro."}
         
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Error en Odoo al actualizar: {str(e)[:150]}"}
+
+async def execute_create_odoo_record(odoo_client, model: str, values: dict) -> dict:
+    """Crea un nuevo registro en Odoo de forma autónoma."""
+    try:
+        # 🛠️ LA SOLUCIÓN: Doble corchete [[values]]
+        # El primer corchete es la lista de argumentos (args) de XML-RPC.
+        # El segundo corchete es la lista de registros que Odoo exige para el método 'create'.
+        record_id = await odoo_client.execute(model, 'create', [[values]])
+        
+        if record_id:
+            # Odoo devuelve una lista con los IDs creados, extraemos el primero
+            id_creado = record_id[0] if isinstance(record_id, list) else record_id
+            return {
+                "status": "success", 
+                "message": f"Registro creado exitosamente en {model}.", 
+                "record_id": id_creado
+            }
+            
+        return {"status": "error", "message": "No se recibió un ID al intentar crear el registro."}
+          
+    except Exception as e:
+        return {"status": "error", "message": f"Error en Odoo al crear: {str(e)[:150]}"}
+
+async def execute_odoo_query(odoo_client, model: str, method: str, domain: list = None, fields: list = None, limit: int = 15, groupby: list = None) -> dict:
+    """Ejecuta una consulta dinámica en Odoo según los parámetros recibidos."""
+    
+    # 🛡️ 1. GUARDIA DE SEGURIDAD: Bloqueamos métodos peligrosos y agregamos 'read_group'
+    metodos_permitidos = ['search_read', 'search_count', 'read_group']
+    if method not in metodos_permitidos:
+        return {"status": "error", "message": f"Por seguridad, el método '{method}' no está permitido."}
+
+    if domain is None:
+        domain = []
+
+    # 2. Preparamos las opciones extra (kwargs)
+    opciones = {}
+    if fields:
+        opciones['fields'] = fields
+        
+    # Agregamos groupby SOLO si el método es read_group (evita errores en Odoo)
+    if groupby and method == 'read_group':
+        opciones['groupby'] = groupby
+        
+    # El límite ahora aplica tanto para listas como para agrupaciones
+    if limit and method in ['search_read', 'read_group']:
+        opciones['limit'] = limit
+
+    # 3. Empaquetamos todo para Odoo
+    args = [ [domain], opciones ]
+    
+    try:
+        result = await odoo_client.execute(model, method, args)
+        if result is not None:
+            return {"status": "success", "data": result}
+        return {"status": "not_found", "message": "No se encontraron datos."}
+    except Exception as e:
+        # Simplificamos el error para que Gemini no se confunda
+        return {"status": "error", "message": f"Error en Odoo: {str(e)[:100]}"}
 
 async def execute_get_top_customers(odoo_client, limit: int = 10) -> Dict[str, Any]:
     """Obtiene los clientes con el mayor volumen de compras."""

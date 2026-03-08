@@ -50,25 +50,79 @@ tools_para_gemini = [
             },
             {
                 "name": "execute_odoo_query",
-                "description": "Herramienta universal para buscar, leer o agrupar registros en la base de datos de Odoo. Úsala para responder cualquier pregunta sobre ventas, clientes, productos, etc.",
+                "description": "Herramienta universal para buscar, contar o leer registros en Odoo.",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
                         "model": {
                             "type": "STRING",
-                            "description": "El modelo de Odoo a consultar (ej. 'sale.order', 'res.partner')."
+                            "description": "El modelo a consultar (ej. 'res.partner')."
                         },
                         "method": {
                             "type": "STRING",
-                            "description": "El método a usar (ej. 'search_read' para listas, 'read_group' para agrupar)."
+                            "description": "Usa 'search_read' para obtener listas de datos o 'search_count' para contar cantidad de registros."
                         },
                         "domain": {
                             "type": "ARRAY",
-                            "description": "Los filtros de búsqueda en formato Odoo (ej. [['state', '=', 'sale']]).",
+                            "description": "Filtros en formato Odoo (ej. [['state', '=', 'sale']]).",
                             "items": {"type": "STRING"} 
+                        },
+                        "fields": {
+                            "type": "ARRAY",
+                            "description": "Lista de campos a devolver (ej. ['partner_id', 'amount_total']).",
+                            "items": {"type": "STRING"}
+                        },
+                        "groupby": {
+                            "type": "ARRAY",
+                            "description": "Lista de campos para agrupar (ej. ['partner_id']). Solo se usa con 'read_group'.",
+                            "items": {"type": "STRING"}
+                        },
+                        "limit": {
+                            "type": "INTEGER",
+                            "description": "Límite de registros (por defecto 10)."
                         }
                     },
-                    "required": ["model", "method"] # El dominio es opcional
+                    "required": ["model", "method"]
+                }
+            },
+            {
+                "name": "create_odoo_record",
+                "description": "Herramienta para crear nuevos registros en Odoo (como clientes, contactos o iniciativas en el CRM).",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "model": {
+                            "type": "STRING",
+                            "description": "El modelo donde se creará el registro (ej. 'res.partner', 'crm.lead')."
+                        },
+                        "values": {
+                            "type": "OBJECT",
+                            "description": "Diccionario con los campos y valores a insertar (ej. {'name': 'Juan Perez', 'phone': '+123456', 'email': 'juan@mail.com'})."
+                        }
+                    },
+                    "required": ["model", "values"]
+                }
+            },
+            {
+                "name": "update_odoo_record",
+                "description": "Herramienta para actualizar o modificar registros existentes en Odoo (ej. cambiar el estado de un lead, actualizar un teléfono).",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "model": {
+                            "type": "STRING",
+                            "description": "El modelo del registro (ej. 'crm.lead')."
+                        },
+                        "record_id": {
+                            "type": "INTEGER",
+                            "description": "El ID numérico del registro que se va a actualizar."
+                        },
+                        "values": {
+                            "type": "OBJECT",
+                            "description": "Diccionario con los campos y sus nuevos valores (ej. {'stage_id': 3, 'phone': '12345'})."
+                        }
+                    },
+                    "required": ["model", "record_id", "values"]
                 }
             }
         ]
