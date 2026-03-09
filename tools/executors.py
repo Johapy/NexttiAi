@@ -1,6 +1,26 @@
 # tools/executors.py
 from typing import Dict, Any
 
+
+async def execute_odoo_action(odoo_client, model: str, method: str, record_ids: list) -> dict:
+    """Ejecuta un método de negocio específico en Odoo (como apretar un botón)."""
+    try:
+        # Los métodos de acción en Odoo reciben una lista de IDs como primer argumento posicional.
+        # Por lo tanto, empaquetamos record_ids dentro de otra lista: [record_ids]
+        resultado = await odoo_client.execute(model, method, [record_ids])
+        
+        # Odoo suele devolver True o un diccionario (acción de ventana) si fue exitoso
+        if resultado is not False:
+            return {
+                "status": "success", 
+                "message": f"Acción '{method}' ejecutada correctamente en los registros {record_ids} del modelo {model}."
+            }
+            
+        return {"status": "error", "message": f"Odoo devolvió False al intentar ejecutar '{method}'."}
+        
+    except Exception as e:
+        return {"status": "error", "message": f"Error en Odoo al ejecutar acción: {str(e)[:150]}"}
+
 # tools/executors.py
 async def execute_update_odoo_record(odoo_client, model: str, record_id: int, values: dict) -> dict:
     """Actualiza un registro existente en Odoo."""

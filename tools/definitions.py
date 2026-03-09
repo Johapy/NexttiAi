@@ -124,6 +124,29 @@ tools_para_gemini = [
                     },
                     "required": ["model", "record_id", "values"]
                 }
+            },
+            {
+                "name": "execute_odoo_action",
+                "description": "Herramienta para ejecutar acciones de negocio o presionar botones en Odoo (ej. confirmar un pedido, publicar una factura).",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "model": {
+                            "type": "STRING",
+                            "description": "El modelo del registro (ej. 'sale.order', 'account.move')."
+                        },
+                        "method": {
+                            "type": "STRING",
+                            "description": "El nombre técnico del método o acción a ejecutar (ej. 'action_confirm', 'action_post')."
+                        },
+                        "record_ids": {
+                            "type": "ARRAY",
+                            "description": "Lista con los IDs numéricos de los registros a afectar (ej. [42]).",
+                            "items": {"type": "INTEGER"}
+                        }
+                    },
+                    "required": ["model", "method", "record_ids"]
+                }
             }
         ]
     }
