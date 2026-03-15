@@ -2,6 +2,51 @@
 from typing import Dict, Any
 
 
+async def execute_explore_odoo_schema(odoo_client, model: str, field_filter: str = None) -> dict:
+    """Descubre dinámicamente los campos disponibles de un modelo en Odoo usando fields_get."""
+    try:
+        # Llamamos a fields_get pidiendo solo los atributos que nos interesan
+        all_fields = await odoo_client.execute(
+            model, 'fields_get',
+            [[], {'attributes': ['string', 'type', 'relation', 'required', 'readonly']}]
+        )
+
+        if not all_fields:
+            return {"status": "not_found", "message": f"No se encontraron campos para el modelo '{model}'."}
+
+        # Si hay filtro, buscamos por nombre técnico o etiqueta (case-insensitive)
+        if field_filter:
+            filtro = field_filter.lower()
+            all_fields = {
+                k: v for k, v in all_fields.items()
+                if filtro in k.lower() or filtro in v.get('string', '').lower()
+            }
+
+        # Simplificamos la respuesta para no saturar el contexto de Gemini
+        schema = {}
+        for nombre, info in list(all_fields.items())[:50]:
+            campo = {
+                "type": info.get("type"),
+                "label": info.get("string", ""),
+            }
+            if info.get("relation"):
+                campo["relation"] = info["relation"]
+            if info.get("required"):
+                campo["required"] = True
+            schema[nombre] = campo
+
+        total = len(all_fields)
+        mostrados = len(schema)
+        mensaje = f"Mostrando {mostrados} de {total} campos del modelo '{model}'."
+        if field_filter:
+            mensaje += f" (filtro: '{field_filter}')"
+
+        return {"status": "success", "message": mensaje, "fields": schema}
+
+    except Exception as e:
+        return {"status": "error", "message": f"Error al explorar esquema de '{model}': {str(e)[:150]}"}
+
+
 async def execute_odoo_action(odoo_client, model: str, method: str, record_ids: list) -> dict:
     """Ejecuta un método de negocio específico en Odoo (como apretar un botón)."""
     try:
@@ -16,7 +61,7 @@ async def execute_odoo_action(odoo_client, model: str, method: str, record_ids: 
                 "message": f"Acción '{method}' ejecutada correctamente en los registros {record_ids} del modelo {model}."
             }
             
-        return {"status": "error", "message": f"Odoo devolvió False al intentar ejecutar '{method}'."}
+        return {"status": "error", "message": f"Odoo devolvió  False al intentar ejecutar '{method}'."}
         
     except Exception as e:
         return {"status": "error", "message": f"Error en Odoo al ejecutar acción: {str(e)[:150]}"}

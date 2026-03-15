@@ -147,6 +147,24 @@ tools_para_gemini = [
                     },
                     "required": ["model", "method", "record_ids"]
                 }
+            },
+            {
+                "name": "explore_odoo_schema",
+                "description": "Explora y descubre los campos disponibles de cualquier modelo en Odoo. Úsala SIEMPRE ANTES de hacer una consulta si no estás seguro de los campos exactos, si el usuario menciona un campo personalizado, o si necesitas verificar qué campos existen en un modelo.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "model": {
+                            "type": "STRING",
+                            "description": "El modelo a explorar (ej. 'res.partner', 'sale.order', 'crm.lead')."
+                        },
+                        "field_filter": {
+                            "type": "STRING",
+                            "description": "Texto opcional para filtrar campos por nombre o etiqueta (ej. 'credit', 'phone', 'x_studio'). Útil para buscar campos personalizados."
+                        }
+                    },
+                    "required": ["model"]
+                }
             }
         ]
     }

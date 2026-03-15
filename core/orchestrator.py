@@ -7,7 +7,8 @@ from tools.executors import (
     execute_get_partner_by_phone, execute_get_top_selling_products, 
     execute_get_total_sales_and_orders, execute_get_top_customers, 
     execute_odoo_query, execute_create_odoo_record, 
-    execute_update_odoo_record, execute_odoo_action
+    execute_update_odoo_record, execute_odoo_action,
+    execute_explore_odoo_schema
 )
 from google import genai
 from google.genai import types
@@ -47,6 +48,7 @@ HERRAMIENTAS Y REGLAS:
 4. 'execute_odoo_action': Para EJECUTAR acciones de negocio (botones). 
    - Para CONFIRMAR un pedido de venta ('sale.order'), usa 'action_confirm'.
    - Para PUBLICAR/VALIDAR una factura ('account.move'), usa 'action_post'.
+5. 'explore_odoo_schema': Para DESCUBRIR campos disponibles de un modelo. Úsala ANTES de consultar un modelo si no conoces sus campos exactos o si el usuario menciona un campo personalizado (ej. 'x_studio_...'). Acepta un filtro opcional para buscar campos específicos.
 """
 
 gemini_client = genai.Client(api_key=settings.gemini_api_key)
@@ -119,6 +121,11 @@ async def process_message(user_id: str, user_message: str):
                 metodo = tool_call.args.get("method")
                 record_ids = tool_call.args.get("record_ids", [])
                 resultado_odoo = await execute_odoo_action(odoo, modelo, metodo, record_ids)
+
+            elif nombre == "explore_odoo_schema":
+                modelo = tool_call.args.get("model")
+                filtro = tool_call.args.get("field_filter")
+                resultado_odoo = await execute_explore_odoo_schema(odoo, modelo, filtro)
 
             else:
                 mensaje_error = f"Herramienta desconocida: '{nombre}'"
